@@ -13,7 +13,7 @@ load_dotenv()
 # Ustaw swój klucz API
 openai.api_key = os.getenv("OPENAI_API_KEY")  # lub wpisz bezpośrednio
 
-# Wybierz model, np. "gpt-3.5-turbo", "gpt-4", "gpt-5-mini"
+# Wybierz model, np. "gpt-3.5-turbo", "gpt-4", "gpt-5-mini" najlepszy jest gpt-3.5-turbo
 MODEL = "gpt-3.5-turbo"
 
 ASSISTANT_ID = "asst_nZcsP8WSRpDG4OGdBXcCwsLA"   # ID Twojego asystenta z panelu OpenAI
