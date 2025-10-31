@@ -1,10 +1,12 @@
 import asyncio, json, sounddevice as sd, websockets, os, time ,base64 ,wave
 from dotenv import load_dotenv
+from openai import OpenAI
 import numpy as np
 
 load_dotenv()
 API_KEY = os.getenv("OPENAI_API_KEY")
-MODEL = "gpt-4o-realtime-preview-2024-12-17"
+#MODEL = "gpt-4o-realtime-preview-2024-12-17"
+MODEL = "gpt-realtime-2025-08-28"
 SAMPLE_RATE = 16000
 
 LOG_EVENTS_TYPES = [
@@ -34,10 +36,11 @@ def is_voice(pcm, threshold=500):
     audio = np.frombuffer(pcm, dtype=np.int16)
     # energia sygnału
     energy = np.mean(np.abs(audio))
-    print(f"Energy: {energy}")
+    #print(f"Energy: {energy}")
     return energy > threshold
 
 async def run():
+    
     print("🎤 Start — mów")
     
     wav = wav_writer()
@@ -61,7 +64,7 @@ async def run():
         "type": "session.update",
         "session": {
             "modalities": ["audio", "text"],      # streaming audio IN
-            "instructions": "Transcribe speech to Polish text. Output ONLY the transcript.",
+            "instructions": "Prowadź rozmowe w języku Polskim.",
             "input_audio_format": "pcm16",  # najważniejsze!
             "output_audio_format": "pcm16",
             "turn_detection": None         # bez auto-VAD (na razie)
@@ -143,15 +146,15 @@ async def run():
             t = evt.get("type")
             
             
-            if "text" in evt:
-                print(f"{t} - TEXT EVENT RAW:", evt)
+            #if "text" in evt:
+            #    print(f"{t} - TEXT EVENT RAW:", evt)
 
 
             # ===========================
             # LOG WSZYSTKIE EVENTY
             # ===========================
             # UWAGA — NIE PRINTUJ TEKSTU TUTAJ
-            print(f"[EVENT] {t}")
+            #print(f"[EVENT] {t}")
 
             # ===========================
             # STREAMOWANIE TEKSTU
@@ -170,5 +173,15 @@ async def run():
 
 
     await asyncio.gather(mic(), rx())
+ 
+from openai import OpenAI
+
+client = OpenAI(api_key=API_KEY)
+
+models = client.models.list()
+
+for m in models.data:
+    print(m.id)
+
 
 asyncio.run(run())
