@@ -5,3 +5,8 @@ __pycache__/
 venv/
 .venv/
 .env
+models/
+debug_mic_audio.wav
+live_transcript.txt
+mic_buffer.wav
+mic_test.wav

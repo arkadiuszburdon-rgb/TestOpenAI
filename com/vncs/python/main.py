@@ -366,6 +366,27 @@ def chat_with_prompt_responses():
         conversation.append({"role": "assistant", "content": reply_text})
 
        
+def fileTranscription():
+    print("Transkrypcja pliku audio")
+    audio_file_path = "D:\\Praca\\OpenAI\\2025-04-04_08_00_26.0_512665690_6015_Katarzyna_Jung_0_02_43_1.wav"
+    
+    if not Path(audio_file_path).is_file():
+        print("Plik nie istnieje. Sprawdź ścieżkę i spróbuj ponownie.")
+        return
+    
+    from openai import OpenAI
+    client = OpenAI(api_key=openai.api_key)
+
+    with open(audio_file_path, "rb") as f:
+        result = client.audio.transcriptions.create(
+            model="whisper-1",
+            file=f,
+            language="pl",
+            response_format="text"
+        )
+
+    print(result)
+
 
 def main():
     # Diagnostic startup info (nie ujawnia sekretów) ---------------------
@@ -400,7 +421,9 @@ def main():
     #    chat_with_prompt_responses()
     #else:
     #    #use_responses()
-    chat_with_prompt_responses()
+    #chat_with_prompt_responses()
+    
+    fileTranscription()
 
 if __name__ == "__main__":
     main()
