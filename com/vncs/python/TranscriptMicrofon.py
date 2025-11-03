@@ -7,8 +7,10 @@ from io import BytesIO
 from datetime import datetime
 
 # =======================================
-# Config
-# =======================================
+# Tenskrypcja za pomocą modelu Wisper. Mikrofon zbiera dzwęk do pliku WAV na dysku.
+# Odczytujemy tylko nowe ramki z pliku WAV i dopisujemy je do bufora w RAM.
+# Co 0.4 sekundy wysyłamy cały bufor audio do modelu Whisper, aby uzyskać pełną transkrypcję.
+# =======================================   
 load_dotenv()
 client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 

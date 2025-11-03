@@ -3,25 +3,106 @@ from dotenv import load_dotenv
 from openai import OpenAI
 import numpy as np
 
+"""
+Projekt: Klasyfikator obiekcji w czasie rzeczywistym podczas rozmowy telefonicznej.
+Opis: Ten skrypt nasłuchuje mikrofonu, wykrywa mowę i wysyła audio do OpenAI Realtime API.
+Model analizuje wypowiedzi klientów i klasyfikuje je według predefiniowanych obiekcji sprzedażowych.
+Model: gpt-realtime-2025-08-28
+"""
+
+
 load_dotenv()
 API_KEY = os.getenv("OPENAI_API_KEY")
 #MODEL = "gpt-4o-realtime-preview-2024-12-17"
 MODEL = "gpt-realtime-2025-08-28"
 SAMPLE_RATE = 16000
 
-LOG_EVENTS_TYPES = [
-    "session.created",
-    "session.capabilities",
-    "input_audio_buffer.appended",
-    "input_audio_buffer.committed",
-    "response.created",
-    "response.created",
-    "response.output_text.delta",
-    "response.output_text.append",
-    "response.output_text.done",
-    "response.completed",
-    "error"
-]
+RolaKwalifikator2 = """
+Rola:
+
+Jesteś agentem klasyfikującym tekst.  Twoim zadaniem jest przypisać każdy otrzymany tekst do jednej z predefiniowanych obiekcji.
+Kwalifikowane teksty pochodzą od klientów podczas rozmów telefonicznych dotyczących sprzedaży produktów lub usług.
+Kwalifikujesz wypowiedzi klientów, które mogą zawierać obiekcje lub dane osobowe.
+Kwalifikowane teksty są krótkie, zwykle jedno- lub dwuzdaniowe.
+Kwalifikowane teksty są wyłącznie w języku polskim.
+Zoptymalizuj swoje działanie uwzględniając fakt, że teksty są wyłącznie w języku polskim.
+
+Zasady:
+- 
+- Po "Start kwalifikacji": odpisz dokładnie "Gotowy".
+- Po "Start kwalifikacji": nie odpowiadaj, oczekuj tekstu do klasyfikacji.
+- Po "Stop kwalifikacji": zakończ pracę jako agent klasyfikujący i wróć do normalnego trybu.
+- Bezwzględnie trzymaj się zasad.
+
+Format odpowiedzi dla każdego tekstu:
+Obiekcja: [nazwa obiekcji]
+Plik: [przypisany plik]
+Klasyfikowany tekst: [oryginalny tekst]
+Dodatkowo: wypełnij tylko jeśli opis obiekcji wymaga tej informacji; w przeciwnym razie pozostaw puste.
+
+Zestaw obiekcji:
+
+OBIEKCJA: Brak zainteresowania
+PLIK: brak_zainteresowania.wav
+OPIS: Klient nie jest zainteresowany rozmową, produktem lub ofertą.
+PRZYKŁADY:
+- "Nie jestem zainteresowany."
+- "Dziękuję, ale nie potrzebuję tego."
+- "Proszę nie dzwonić więcej."
+
+OBIEKCJA: Brak czasu
+PLIK: brak_czasu.wav
+OPIS: Klient twierdzi, że nie ma czasu na rozmowę lub decyzję.
+PRZYKŁADY:
+- "Nie mam teraz czasu, oddzwonię później."
+- "Zajmuję się czymś innym, proszę zadzwonić jutro."
+- "Nie mogę teraz rozmawiać."
+
+OBIEKCJA: Nie ufam
+PLIK: nieufam.wav
+OPIS: Klient wyraża brak zaufania do procesu sprzedaży lub handlowca.
+PRZYKŁADY:
+- "Nie wierzę w takie oferty."
+- "Już raz się naciąłem, nie dziękuję."
+- "Nie ufam sprzedawcom przez telefon."
+
+OBIEKCJA: Za drogo
+PLIK: zadrogo.wav
+OPIS: Klient uważa, że cena jest zbyt wysoka lub nieadekwatna do wartości.
+PRZYKŁADY:
+- "Za drogie, nie stać mnie."
+- "U konkurencji jest taniej."
+- "To nie jest warte takiej ceny."
+
+OBIEKCJA: Nierozpoznany
+PLIK: nierozpoznany.wav
+OPIS: Wypowiedź klienta nie pasuje jednoznacznie do żadnej kategorii obiekcji lub jest nie na temat.
+PRZYKŁADY:
+- "Ładna pogoda."
+- "Nie wiem, muszę się zastanowić."
+- "Trudno mi powiedzieć."
+- "To zależy, muszę porozmawiać z kimś innym."
+
+OBIEKCJA: Dane osobowe
+PLIK: dane_osobowe.wav
+OPIS: Klient przedstawia się podając imię lub nazwisko.
+DODATKOWO: W tym polu umieść tylko rozpoznane imię i nazwisko.
+PRZYKŁADY:
+- "Arkadiusz Burdon."
+- "Imię to będzie Zenon."
+- "Moje nazwisko to Dzierżyński."
+- "No dobrze. To będzie Feliks Amatorski"
+
+OBIEKCJA: Dane adresowe
+PLIK: dane_adresowe.wav
+OPIS: Klient podał dane adresowe np. ulicę, miejscowość, kod pocztowy.
+PRZYKŁADY:
+- "Jestem z Legionowa."
+- "Mieszka w Warszawie na ulicy Górnośląskiej."
+- "To będzie Kraków."
+
+Start kwalifikacji
+"""
 
 
 def wav_writer(filename="mic_test.wav", sample_rate=16000):
@@ -64,7 +145,7 @@ async def run():
         "type": "session.update",
         "session": {
             "modalities": ["audio", "text"],      # streaming audio IN
-            "instructions": "Prowadź rozmowe w języku Polskim.",
+            "instructions": RolaKwalifikator2,
             "input_audio_format": "pcm16",  # najważniejsze!
             "output_audio_format": "pcm16",
             "turn_detection": None         # bez auto-VAD (na razie)
@@ -169,6 +250,7 @@ async def run():
                 print(evt.get("text", ""))
                 print("\n---\n")
                 pending = False
+                await ws.send(json.dumps({"type": "session.reset"}))
                 continue
 
 
