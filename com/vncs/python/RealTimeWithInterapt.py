@@ -8,6 +8,7 @@ import keyboard
 # Odpowiada naturalnie i zwięźle.   
 # Nie powtarza użytkownika — odpowiada sensownie.
 # Detekcja mowy i zarządzanie turami przez serwer (OpenAI Realtime API).
+# Dodano przerwanie odpowiedzi asystenta, gdy użytkownik zaczyna mówić (barge-in).
 #-----------------------------------------------
 
 load_dotenv()
@@ -97,6 +98,7 @@ async def run():
 
     audio_out_buffer = bytearray()
     mute_mic = True
+    is_speaking = False
     
     def audio_callback(outdata, frames, time, status):
         nonlocal audio_out_buffer
@@ -123,7 +125,7 @@ async def run():
                 await asyncio.sleep(0)
 
     async def rx():
-        nonlocal audio_out_buffer, mute_mic
+        nonlocal audio_out_buffer, mute_mic, is_speaking
 
         with sd.RawOutputStream(samplerate=SAMPLE_RATE, channels=1, dtype="int16", callback=audio_callback):
             async for msg in ws:
@@ -137,6 +139,13 @@ async def run():
 
                 if t == "input_audio_buffer.speech_started":
                     print("\n🎤 Początek wypowiedzi...")
+                    # jeśli bot mówi → przerwij
+                    audio_out_buffer = bytearray()  # czyścimy wyjście audio
+                    if is_speaking:
+                        print("⛔ Przerywam odpowiedź modelu — użytkownik zaczął mówić")
+                        is_speaking = False
+                        # anulowanie odpowiedzi modelu
+                        await ws.send(json.dumps({"type": "response.cancel"}))
 
                 #if t == "conversation.item.input_audio_transcription.delta":
                     #print(evt.get("delta",""), end="", flush=True)
@@ -150,11 +159,13 @@ async def run():
                     pass
 
                 if t == "response.audio_transcript.done":
+                    is_speaking = False
                     print(evt.get("transcript",""), end="", flush=True)
                     print("\n🤖 --- Koniec odpowiedzi ---\n")
                     await asyncio.sleep(1)  # pozwól dokończyć odtwarzanie
                 
                 if t == "response.audio.delta":
+                    is_speaking = True
                     pcm = base64.b64decode(evt["delta"])
                     audio_out_buffer.extend(pcm)
                     

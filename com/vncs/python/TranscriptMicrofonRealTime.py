@@ -3,12 +3,13 @@ from dotenv import load_dotenv
 from openai import OpenAI
 import numpy as np
 
-"""
-Projekt: Klasyfikator obiekcji w czasie rzeczywistym podczas rozmowy telefonicznej.
-Opis: Ten skrypt nasłuchuje mikrofonu, wykrywa mowę i wysyła audio do OpenAI Realtime API.
-Model analizuje wypowiedzi klientów i klasyfikuje je według predefiniowanych obiekcji sprzedażowych.
-Model: gpt-realtime-2025-08-28
-"""
+# =======================================
+#Projekt: Klasyfikator obiekcji w czasie rzeczywistym podczas rozmowy telefonicznej.
+#Opis: Ten skrypt nasłuchuje mikrofonu, wykrywa mowę i wysyła audio do OpenAI Realtime API.
+#Model analizuje wypowiedzi klientów i klasyfikuje je według predefiniowanych obiekcji sprzedażowych.
+#Własna detekcja mowy (VAD) decyduje, kiedy wysłać audio do modelu.
+#Model: gpt-realtime-2025-08-28
+# =======================================
 
 
 load_dotenv()
